@@ -17,6 +17,6 @@
         "forceConsistentCasingInFileNames": true,
         "noFallthroughCasesInSwitch": false,
         "module": "ESNext",
-        "moduleResolution": "classic"
+        "moduleResolution": "Node"
     },
 }

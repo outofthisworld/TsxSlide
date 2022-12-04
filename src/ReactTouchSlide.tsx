@@ -1,4 +1,4 @@
-import React from "react";
+import React, { MouseEventHandler } from "react";
 import { Box } from "@mui/material";
 import ReactTouchSlideStyles from "./ReactTouchSlide.Styles";
 import { CSS } from "./interface";
@@ -26,36 +26,37 @@ function ReactTouchSlide({
   className
 }: ReactTouchSlideProps) {
   const childRef = React.useRef<HTMLElement | null>(null);
-  const stateRef = React.useRef<ReactTouchSlideState | null>(null);
   const [state, setState] = React.useState<ReactTouchSlideState>({
     mousedown: false,
     pageX: 0,
     reachedThreshold: false
   });
+  const stateRef = React.useRef<ReactTouchSlideState>(state);
+
 
   React.useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   const down = React.useCallback(
-    (e: MouseEvent) => {
-      if (!stateRef.current?.mousedown) {
-        setState({ ...childRef.current, mousedown: true, pageX: e.pageX, reachedThreshold: false });
+    (e): void => {
+      if (!stateRef.current.mousedown) {
+        setState({ ...stateRef.current, mousedown: true, pageX: e.pageX, reachedThreshold: false });
       }
     },
     [stateRef, setState]
   );
 
   const move = React.useCallback(
-    (e: MouseEvent) => {
-      if (!stateRef.current?.mousedown || !childRef.current)
+    (e): void => {
+      if (!stateRef.current.mousedown || !childRef.current)
         return;
 
       const dx = Math.max(e.pageX - stateRef.current.pageX, 0);
 
       childRef.current.style.left = `${dx}px`;
 
-      if ((dx >= childRef.current.clientWidth * threshold) && !stateRef.current?.reachedThreshold) {
+      if ((dx >= childRef.current.clientWidth * threshold) && !stateRef.current.reachedThreshold) {
         setState({ ...stateRef.current, reachedThreshold: true });
       }
     },
@@ -64,8 +65,9 @@ function ReactTouchSlide({
 
   const up = React.useCallback(
     () => {
-      if (stateRef.current?.mousedown && !stateRef.current?.reachedThreshold) {
-        setState({ ...childRef.current, mousedown: false, pageX: 0, reachedThreshold: false });
+      const { current } = stateRef;
+      if (current.mousedown && !current.reachedThreshold) {
+        setState({ ...current, mousedown: false, pageX: 0, reachedThreshold: false });
       }
     },
     [stateRef, childRef, setState]
