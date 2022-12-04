@@ -8,7 +8,6 @@ const ReactTouchSlideStyles: AppStyles = {
   children: css`
     overflow: hidden;
     position: relative;
-    transition: all 0.5s linear;
   `
 };
 

@@ -2,6 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import ReactTouchSlideStyles from "./ReactTouchSlide.Styles";
 import { CSS } from "./interface";
+import { useTransition, animated } from 'react-spring'
 
 interface ReactTouchSlideProps {
   children: any;
@@ -13,19 +14,23 @@ interface ReactTouchSlideProps {
 interface ReactTouchSlideState {
   mousedown: boolean;
   pageX: number;
+  reachedThreshold: boolean;
 }
+
+const AnimatedBox = animated(Box);
 
 function ReactTouchSlide({
   children,
-  threshold = 0.5,
-  onReachThreshold = () => {},
+  threshold = 0.35,
+  onReachThreshold = () => { },
   className
 }: ReactTouchSlideProps) {
   const childRef = React.useRef<HTMLElement | null>(null);
   const stateRef = React.useRef<ReactTouchSlideState | null>(null);
   const [state, setState] = React.useState<ReactTouchSlideState>({
     mousedown: false,
-    pageX: 0
+    pageX: 0,
+    reachedThreshold: false
   });
 
   React.useEffect(() => {
@@ -33,65 +38,73 @@ function ReactTouchSlide({
   }, [state]);
 
   const down = React.useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (!stateRef.current?.mousedown) {
-        console.log("setting miuse down");
-        setState({ ...state, mousedown: true, pageX: e.pageX });
+        setState({ ...childRef.current, mousedown: true, pageX: e.pageX, reachedThreshold: false });
       }
     },
-    [stateRef, state, setState]
+    [stateRef, setState]
   );
 
   const move = React.useCallback(
-    (e) => {
-      if (!stateRef.current || !stateRef.current.mousedown || !childRef.current)
+    (e: MouseEvent) => {
+      if (!stateRef.current?.mousedown || !childRef.current)
         return;
-      const dx = e.pageX - stateRef.current.pageX;
+
+      const dx = Math.max(e.pageX - stateRef.current.pageX, 0);
+
       childRef.current.style.left = `${dx}px`;
-      if (dx >= childRef.current.clientWidth * threshold) {
-        onReachThreshold();
+
+      if ((dx >= childRef.current.clientWidth * threshold) && !stateRef.current?.reachedThreshold) {
+        setState({ ...stateRef.current, reachedThreshold: true });
       }
     },
-    [stateRef, childRef, threshold, onReachThreshold]
+    [stateRef, childRef, setState, threshold, onReachThreshold]
   );
 
   const up = React.useCallback(
-    (e) => {
-      if (stateRef.current?.mousedown) {
-        if (childRef.current) childRef.current.style.left = `0px`;
-        setState({ ...state, mousedown: false, pageX: 0 });
+    () => {
+      if (stateRef.current?.mousedown && !stateRef.current?.reachedThreshold) {
+        setState({ ...childRef.current, mousedown: false, pageX: 0, reachedThreshold: false });
       }
     },
-    [stateRef, state, childRef, setState]
+    [stateRef, childRef, setState]
   );
 
   React.useEffect(() => {
-    const childRefCp = childRef.current;
     window.addEventListener("mouseup", up);
-    window.addEventListener("mousemove", move);
-    childRef.current?.addEventListener("mousedown", down);
 
     return () => {
       window.removeEventListener("mouseup", up);
-      window.removeEventListener("mousemove", move);
-      childRefCp?.removeEventListener("mousedown", down);
     };
-  }, [up, down, move, childRef]);
+  }, [up, childRef]);
 
-  return (
+  const transitions = useTransition(state.reachedThreshold, {
+    from: { opacity: 0 },
+    enter: { opacity: 1 },
+    leave: { opacity: 0 },
+    onDestroyed: onReachThreshold,
+    delay: 200,
+  });
+
+  return transitions((style: any, item: boolean) => (
     <Box className={[ReactTouchSlideStyles.root]}>
-      <Box
+      {!item && <AnimatedBox
+        style={style}
         ref={childRef}
+        onMouseDown={down}
+        onMouseMove={move}
         className={[
           "touch-slide-child",
           ReactTouchSlideStyles.children,
           className
         ]}
       >
+        {item ? 'item...' : '!item'}
         {children}
-      </Box>
-    </Box>
-  );
+      </AnimatedBox>}
+    </Box >
+  ));
 }
 
 export default ReactTouchSlide;

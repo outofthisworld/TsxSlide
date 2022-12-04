@@ -1,3 +1,4 @@
+import React from "react";
 import { Box } from "@mui/material";
 import styles from "./App.Styles";
 import ReactTouchSlide from "./ReactTouchSlide";
@@ -7,7 +8,7 @@ interface ReactSlideItem {
 }
 
 function App() {
-  const items: ReactSlideItem[] = [
+  const [items, setItems] = React.useState<ReactSlideItem[]>([
     {
       name: "Dale"
     },
@@ -23,15 +24,22 @@ function App() {
     {
       name: "Jitu"
     }
-  ];
+  ]);
 
   return (
     <Box className={[styles.root]}>
-      {items.map(({ name }, index) => (
-        <ReactTouchSlide key={name} className={styles.item}>
-          {name}
-        </ReactTouchSlide>
-      ))}
+      <Box maxWidth="500px" margin="0 auto">
+        {items.map(({ name }, index) => (
+          <ReactTouchSlide key={name} className={styles.item} onReachThreshold={()=>{
+            console.log('Deleting:: ', index);
+              const itemsCp = [...items];
+              itemsCp.splice(index,1);
+              setItems(itemsCp);
+          }}>
+            {name}
+          </ReactTouchSlide>
+        ))}
+      </Box>
     </Box>
   );
 }
