@@ -33,22 +33,25 @@ function ReactTouchSlide({
   });
   const stateRef = React.useRef<ReactTouchSlideState>(state);
 
-
   React.useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  const down = React.useCallback(
-    (e): void => {
+  const update = React.useCallback<(data: Partial<ReactTouchSlideState>) => void>((data = {}) => {
+    setState({ ...(stateRef?.current || {}), ...data })
+  }, [stateRef, setState]);
+
+  const down = React.useCallback<(e: any) => void>(
+    (e) => {
       if (!stateRef.current.mousedown) {
-        setState({ ...stateRef.current, mousedown: true, pageX: e.pageX, reachedThreshold: false });
+        update({ mousedown: true, pageX: e.pageX, reachedThreshold: false });
       }
     },
-    [stateRef, setState]
+    [stateRef, update]
   );
 
-  const move = React.useCallback(
-    (e): void => {
+  const move = React.useCallback<(e: any) => void>(
+    (e) => {
       if (!stateRef.current.mousedown || !childRef.current)
         return;
 
@@ -57,45 +60,49 @@ function ReactTouchSlide({
       childRef.current.style.left = `${dx}px`;
 
       if ((dx >= childRef.current.clientWidth * threshold) && !stateRef.current.reachedThreshold) {
-        setState({ ...stateRef.current, reachedThreshold: true });
+        update({ reachedThreshold: true });
       }
     },
-    [stateRef, childRef, setState, threshold, onReachThreshold]
+    [stateRef, childRef, threshold, onReachThreshold, update]
   );
 
   const up = React.useCallback(
     () => {
       const { current } = stateRef;
       if (current.mousedown && !current.reachedThreshold) {
-        setState({ ...current, mousedown: false, pageX: 0, reachedThreshold: false });
+        update({ mousedown: false, pageX: 0, reachedThreshold: false });
       }
     },
-    [stateRef, childRef, setState]
+    [stateRef, childRef, update]
   );
 
-  React.useEffect(() => {
-    window.addEventListener("mouseup", up);
-
-    return () => {
+  const bindListeners = React.useCallback<(listen: boolean) => void>((listen) => {
+    if (listen) {
+      window.addEventListener("mouseup", up);
+    } else {
       window.removeEventListener("mouseup", up);
-    };
+    }
+  }, [up]);
+
+  React.useEffect(() => {
+    bindListeners(true);
+    return () => bindListeners(false);
   }, [up, childRef]);
 
-  const transitions = useTransition(state.reachedThreshold, {
+  return useTransition(state.reachedThreshold, {
     from: { opacity: 0 },
     enter: { opacity: 1 },
     leave: { opacity: 0 },
     onDestroyed: onReachThreshold,
     delay: 200,
-  });
-
-  return transitions((style: any, item: boolean) => (
+  })((style: any, item: boolean) => (
     <Box className={[ReactTouchSlideStyles.root]}>
       {!item && <AnimatedBox
         style={style}
         ref={childRef}
         onMouseDown={down}
         onMouseMove={move}
+        onTouchStart={down}
         className={[
           "touch-slide-child",
           ReactTouchSlideStyles.children,
