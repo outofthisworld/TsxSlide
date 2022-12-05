@@ -33,8 +33,8 @@ function App() {
           <ReactTouchSlide key={name} className={styles.item} onReachThreshold={()=>{
             console.log('Deleting:: ', index);
               const itemsCp = [...items];
-              itemsCp.splice(index,1);
-              setItems(itemsCp);
+              const [deleted] = itemsCp.splice(index,1);
+              setItems([...itemsCp, deleted]);
           }}>
             {name}
           </ReactTouchSlide>
